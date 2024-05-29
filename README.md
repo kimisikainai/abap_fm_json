@@ -11,27 +11,28 @@ The purpose of this adaptor is to allow calling ABAP function modules via HTTP a
 
 ## How to install
 
+*It seems that [abapGit](https://github.com/larshp/abapGit) is the way to go. This repository should now work with abapGit, please inform me if you find any issue*.
+
+*SAPLink is still supported and I've updated the nugget and slinkees. However, many people are currently getting trouble to make SAPLink work. If you come accross problems, I have made available a transport request for direct import into an ABAP system in [transport/](https://github.com/cesar-sap/abap_fm_json/tree/master/transport/)*.
+
 In order to install this you need [SAPLink](https://sap.assembla.com/spaces/saplink/wiki). First install SAPLink in your ABAP server following the [SAPLink installation instrucctions](http://wiki.scn.sap.com/wiki/display/ABAP/SAPlink+User+Documentation). Be sure to install the required [SAPLink plugins](https://www.assembla.com/spaces/saplink/wiki/SAPlink_plugin_list). To minimize trouble, I recommend your installing the [Nugget that contains all commonly used plugings](https://www.assembla.com/spaces/saplink-plugins/subversion/source/HEAD/build).
 
-This adaptor works with any ABAP version from 7.0 onwards. I have tested it in 7.31 and 7.40, which are the two releases where I can currently maintain it. If you are using any older release please contact me for indications.
+This adaptor works with any ABAP version from 7.0 onwards. I have tested it in 7.31, 7.40 and 7.50, which are the three releases where I can currently maintain it. If you are using any older release please contact me for indications.
 
 As a rule, to make it work in any pre 7.31 release, you have to comment out all calls to the ABAP built-in JSON converter, that is, the calls to the methods SERIALIZE_ID and DESERIALIZE_ID in HANDLE_REQUEST and the code inside both methods. You cannot use them anyway in pre 7.31 releases. 
 
 
-### ABAP Authorization 
+## ABAP Authorization 
 
 The module includes an AUTHORITY_CHECK call to a custom authorization object named Z_JSON that validates if the user can access the function module. 
 
 You must create and authorization object with the name Z_JSON and just one field named FNMANE as authorization objects are not yet transported with SAPLink. Use transaction SU21 for this.
 
-The authorization object will be included in the corresponding user profile. An asterisk (*) will allow the user to access all function modules. It is very recommended that any user that is going to access function modules through this adaptor has a profile with just the functions that he is allowed to access.
+The authorization object will be included in the corresponding user profile. An asterisk (\*) will allow the user to access all function modules. It is very recommended that any user that is going to access function modules through this adaptor has a profile with just the functions that he is allowed to access.
 
+## Create ICF service
 
-## How to invoke
-
-### Create ICF service
-
-You must create a service in ICF to make an endpoint for the adaptor. Here goes an example in transaction SICF:
+You must create a service in ICF to make an endpoint for the adaptor. The service must use class ZCL_JSON_HANDLER as the first entry in the Handler List. Here goes an example in transaction SICF:
 
 ![Define ICF service for the JSON adaptor](https://raw.githubusercontent.com/cesar-sap/abap_fm_json/master/SICF.jpg)
 
@@ -39,7 +40,7 @@ In this example, you will invoke the service using the following syntax:
 
 `http(s)://your_abap_server:<port>/fmcall/<function_module_name>?<parameters>`
 
-### Function module parameters
+## Function module parameters
 
 You can pass as GET query string parameters any of the function IMPORT parameters that are defined and single data types (not structures or tables).
 
@@ -47,31 +48,36 @@ In order to pass structures or tables to the function module, use any of the HTT
 
 Some parameters exist as standard. Most notably:
 
-`format=<output_format` set the format of the response,
-`lowercase=X` will show ABAP variable names in lower case,
-`show_import_params=X` will include the IMPORT parameters in the response,
-`callback=<callback_name>` wraps response in a JavaScript callback function. 
+`format=<output_format>` set the format of the response. Valid formats are: json, xml, yaml, perl.
 
-### Supported output formats
+`lowercase=X` the response will show ABAP variable names in lower case.
 
-The adaptor can produce output in the following formats:
+`camelcase=X` the response will show ABAP variable names in [lowerCamelCase](http://wiki.c2.com/?LowerCamelCase).
 
-JSON:
+`show_import_params=X` will include the IMPORT parameters in the response.
 
-XML:
+`callback=<callback_name>` wraps response in a JavaScript callback function (for [jsonp](http://stackoverflow.com/questions/3839966/can-anyone-explain-what-jsonp-is-in-layman-terms) enabled calls). 
 
-YAML:
+## Supported output formats
 
-PERL: just for fun. 
+The adaptor can produce output in the following formats: [JSON](http://www.json.org/), plain XML, [YAML 1.0](http://yaml.org/spec/1.0/), and [Perl](http://perldoc.perl.org/Data/Dumper.html) (which I did just for fun, but has itself shown to be quite useful in a number of occassions). 
+
+Please note that the output format does not affect the input. The adaptor only supports input in JSON, and (if using the ABAP built-in transformation) in plain XML.
 
 ## Session and logon support
 
+It is possible to activate ABAP session support for sequential calls to the adaptor (and thus running several calls in the same session context). Call the adaptor including a param action=start_session to activate it and action=end_session to finish it.
+
+All ABAP logon methods are supported. Please configure the required one in SICF (see above).
+
 ## Cross Site requests
 
-## Notes
+JSONP is supported. CORS support is planned.
 
-### ABAP based or transformation based serializers
+## ABAP based or transformation based serializers
 
-## Contact
+Originally this adaptor implemented pure ABAP based JSON to ABAP and ABAP to JSON serializers. Since [January 2013](http://scn.sap.com/community/abap/blog/2013/01/07/abap-and-json) ABAP built-in transformations are available. The adaptor offers you the two options. The original pure ABAP serializers are activated by default. In order to use the built-in transformations, please comment out the corresponding lines in the HANDLE_REQUEST method.
 
+## Comments
 
+I welcome comments and suggestions for new ideas. Please feel free to contact me. 
